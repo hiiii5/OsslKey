@@ -189,7 +189,7 @@ ossl::OsslResult ossl::OsslEcKey::GenerateKeyPair() noexcept {
   }
 
   std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)> context(
-      EVP_PKEY_CTX_new_id(EVP_PKEY_EC, nullptr), EVP_PKEY_CTX_free);
+      EVP_PKEY_CTX_new_from_name(nullptr, "EC", nullptr), EVP_PKEY_CTX_free);
   if (context == nullptr) {
     return OsslResult{OsslResult::Status::Failure,
                       "Failed to create context when generating key pair {%s}",
@@ -203,7 +203,7 @@ ossl::OsslResult ossl::OsslEcKey::GenerateKeyPair() noexcept {
                       GetLastError()};
   }
 
-  if (EVP_PKEY_CTX_set_params(context.get(), params.get()) <= 0) {
+  if (!EVP_PKEY_CTX_set_params(context.get(), params.get())) {
     return OsslResult{OsslResult::Status::Failure,
                       "Failed to set parameters when generating key pair {%s}",
                       GetLastError()};
@@ -215,19 +215,23 @@ ossl::OsslResult ossl::OsslEcKey::GenerateKeyPair() noexcept {
                       "Failed to generate key pair {%s}", GetLastError()};
   }
 
+  // Sanity check the key
+  m_keyPair.reset(keyPair);
+
   if (!IsPrivateKeyValid()) {
+    m_keyPair.reset();
     return OsslResult{OsslResult::Status::Failure,
                       "Failed to generate a valid private key {%s}",
                       GetLastError()};
   }
 
   if (!IsPublicKeyValid()) {
+    m_keyPair.reset();
     return OsslResult{OsslResult::Status::Failure,
                       "Failed to generate a valid public key {%s}",
                       GetLastError()};
   }
 
-  m_keyPair.reset(keyPair);
   return OsslResult{OsslResult::Status::Success,
                     "Key pair generated successfully"};
 }
@@ -346,17 +350,17 @@ ossl::OsslResult ossl::OsslEcKey::GenerateFromSeedPhrase(
   }
 
   // Lets sanity check the key
+  m_keyPair.reset(keyPair);
   if (!IsPrivateKeyValid()) {
+    m_keyPair.reset();
     return {OsslResult::Status::Failure,
             "Failed to generate a valid private key {%s}", GetLastError()};
   }
   if (!IsPublicKeyValid()) {
+    m_keyPair.reset();
     return {OsslResult::Status::Failure,
             "Failed to generate a valid public key {%s}", GetLastError()};
   }
-
-  // Now we can set the key pair
-  m_keyPair.reset(keyPair);
 
   return {OsslResult::Status::Success};
 }
@@ -437,12 +441,12 @@ ossl::OsslResult ossl::OsslEcKey::GenerateKeyFromPrivateHex(
   }
 
   // Lets sanity check the key
+  m_keyPair.reset(keyPair);
   if (!IsPrivateKeyValid()) {
+    m_keyPair.reset();
     return {OsslResult::Status::Failure,
             "Failed to generate a valid private key {%s}", GetLastError()};
   }
-
-  m_keyPair.reset(keyPair);
 
   return {OsslResult::Status::Success};
 }
@@ -515,12 +519,12 @@ ossl::OsslResult ossl::OsslEcKey::GenerateKeyFromPublicHex(
   }
 
   // Lets sanity check the key
+  m_keyPair.reset(temp);
   if (!IsPublicKeyValid()) {
+    m_keyPair.reset();
     return {OsslResult::Status::Failure,
             "Failed to generate a valid public key {%s}", GetLastError()};
   }
-
-  m_keyPair.reset(temp);
 
   return {OsslResult::Status::Success};
 }
@@ -610,17 +614,18 @@ ossl::OsslResult ossl::OsslEcKey::GenerateKeyFromPrivateAndPublicHex(
   }
 
   // Lets sanity check the key
+  m_keyPair.reset(temp);
   if (!IsPrivateKeyValid()) {
+    m_keyPair.reset();
     return {OsslResult::Status::Failure,
             "Failed to generate a valid private key {%s}", GetLastError()};
   }
 
   if (!IsPublicKeyValid()) {
+    m_keyPair.reset();
     return {OsslResult::Status::Failure,
             "Failed to generate a valid public key {%s}", GetLastError()};
   }
-
-  m_keyPair.reset(temp);
 
   return {OsslResult::Status::Success};
 }
