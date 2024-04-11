@@ -6,6 +6,7 @@ For now this wrapper only supports ECDSA keys.
 ## Dependencies
 - [OpenSSL](https://www.openssl.org/)
 - [CMake](https://cmake.org/)
+- [C++17](https://en.cppreference.com/w/cpp/17)
 
 ## Installation
 ```bash
